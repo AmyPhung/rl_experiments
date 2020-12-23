@@ -1,7 +1,15 @@
+"""
+Based on https://github.com/IsaacPatole/CartPole-v0-using-Q-learning-SARSA-and-DNN/blob/master/Qlearning_for_cartpole.py
+
+Modified to use plotting
+"""
+
 import gym
 import numpy as np
 import math
+
 from cartpole_env import CartPoleEnv
+import plotting
 
 class CartPoleQAgent():
     def __init__(self, buckets=(1, 1, 6, 12), num_episodes=1000, min_lr=0.1, min_epsilon=0.1, discount=1.0, decay=25):
@@ -45,21 +53,31 @@ class CartPoleQAgent():
         return max(self.min_lr, min(1., 1. - math.log10((t + 1) / self.decay)))
 
     def train(self):
+        stats = plotting.EpisodeStats(
+            episode_lengths = np.zeros(self.num_episodes),
+            episode_rewards = np.zeros(self.num_episodes))
+
         for e in range(self.num_episodes):
             current_state = self.discretize_state(self.env.reset())
 
             self.learning_rate = self.get_learning_rate(e)
             self.epsilon = self.get_epsilon(e)
+            t = 0
             done = False
 
             while not done:
+                t = t+1
                 action = self.choose_action(current_state)
                 obs, reward, done, _ = self.env.step(action)
                 new_state = self.discretize_state(obs)
                 self.update_q(current_state, action, reward, new_state)
                 current_state = new_state
 
+                stats.episode_rewards[e] += reward
+                stats.episode_lengths[e] = t
+
         print('Finished training!')
+        return stats
 
     def run(self):
         self.env = gym.wrappers.Monitor(self.env,'cartpole')
@@ -80,6 +98,7 @@ class CartPoleQAgent():
 
 if __name__ == "__main__":
     agent = CartPoleQAgent()
-    agent.train()
+    stats = agent.train()
     t = agent.run()
     print("Time", t)
+    plotting.plot_episode_stats(stats)
