@@ -116,6 +116,7 @@ class NavEnv(gym.Env):
         return [seed]
 
     def step(self, action):
+        # Update state ---------------------------------------------------------
         print("Previous state:")
         print(self.state)
         print("Action:")
@@ -127,7 +128,11 @@ class NavEnv(gym.Env):
         lin_vel, ang_vel = action
 
         r_theta += self.tau * ang_vel
-        # TODO: Add bound limiting on theta
+        # Keep theta within -pi to pi range
+        r_theta = r_theta % (2*np.pi)
+        if r_theta > np.pi:
+            r_theta -= 2*np.pi
+
         r_x += lin_vel*np.cos(r_theta)
         r_y += lin_vel*np.sin(r_theta)
         print(r_theta)
@@ -136,6 +141,8 @@ class NavEnv(gym.Env):
         self.state = (r_x, r_y, r_theta, g_x, g_y)
         print("Current state:")
         print(self.state)
+
+        # Update reward --------------------------------------------------------
 
         # theta =
         # dx =
