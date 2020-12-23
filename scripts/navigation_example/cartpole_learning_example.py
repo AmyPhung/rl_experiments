@@ -66,6 +66,7 @@ class CartPoleQAgent():
             done = False
 
             while not done:
+                self.env.render()
                 t = t+1
                 action = self.choose_action(current_state)
                 obs, reward, done, _ = self.env.step(action)
