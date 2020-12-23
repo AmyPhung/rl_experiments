@@ -21,12 +21,13 @@ class NavEnv(gym.Env):
         goal is to drive the robot to the goal state.
 
     Observation:
-        Type: Box(4)
+        Type: Box(5)
         Num     Observation               Min                Max
         0       Robot X-Position          -sim x-limit       sim x-limit
         1       Robot Y-Position          -sim y-limit       sim y-limit
-        2       Goal X-Position           -sim x-limit       sim x-limit
-        3       Goal Y-Position           -sim y-limit       sim y-limit
+        2       Robot direction           -pi                pi
+        3       Goal X-Position           -sim x-limit       sim x-limit
+        4       Goal Y-Position           -sim y-limit       sim y-limit
 
     Actions:
         Type: Box(2)
@@ -66,6 +67,7 @@ class NavEnv(gym.Env):
         # self.polemass_length = (self.masspole * self.length)
         # self.force_mag = 10.0
         self.robot_diameter = 0.1
+        self.goal_diameter = 0.3
 
         # Distance at which to fail the episode
         # self.theta_threshold_radians = 12 * 2 * math.pi / 360
@@ -91,9 +93,9 @@ class NavEnv(gym.Env):
         # self.action_space = spaces.Discrete(2)
         # self.observation_space = spaces.Box(-high, high, dtype=np.float32)
         #
-        # self.seed()
+        self.seed()
         self.viewer = None
-        # self.state = None
+        self.state = None
         #
         # self.steps_beyond_done = None
 
@@ -157,10 +159,20 @@ class NavEnv(gym.Env):
         pass
 
     def reset(self):
-        # self.state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,))
+        # State: robot-x, robot-y, robot-theta, goal-x, goal-y
+        self.state = [self.np_random.uniform(low=-self.world_x_limit,
+                                             high=self.world_x_limit),
+                      self.np_random.uniform(low=-self.world_y_limit,
+                                             high=self.world_y_limit),
+                      self.np_random.uniform(low=-np.pi,
+                                             high=np.pi),
+                      self.np_random.uniform(low=-self.world_x_limit,
+                                             high=self.world_x_limit),
+                      self.np_random.uniform(low=-self.world_y_limit,
+                                             high=self.world_y_limit)]
+        print(self.state)
         # self.steps_beyond_done = None
-        # return np.array(self.state)
-        pass
+        return np.array(self.state)
 
     def render(self, mode='human'):
         screen_width = int(self.scale * 2*self.world_x_limit)
@@ -168,11 +180,6 @@ class NavEnv(gym.Env):
 
         world_width = self.world_x_limit * 2
         world_height = self.world_y_limit * 2
-
-
-        x_scale = screen_width/world_width
-        y_scale = screen_height/world_height
-
 
         # carty = 100  # TOP OF CART
         # polewidth = 10.0
@@ -188,6 +195,12 @@ class NavEnv(gym.Env):
             robot.add_attr(self.robottrans)
             robot.set_color(0.0, 0.1, 0.5)
             self.viewer.add_geom(robot)
+
+            goal = rendering.make_circle(self.scale * self.goal_diameter)
+            self.goaltrans = rendering.Transform()
+            goal.add_attr(self.goaltrans)
+            goal.set_color(0.1, 0.5, 0.1)
+            self.viewer.add_geom(goal)
 
             # l, r, t, b = -cartwidth / 2, cartwidth / 2, cartheight / 2, -cartheight / 2
             # axleoffset = cartheight / 4.0
@@ -213,18 +226,31 @@ class NavEnv(gym.Env):
             #
             # self._pole_geom = pole
 
-        # if self.state is None:
-        #     return None
+        if self.state is None:
+            return None
 
         # Edit the pole polygon vertex
         # pole = self._pole_geom
         # l, r, t, b = -polewidth / 2, polewidth / 2, polelen - polewidth / 2, -polewidth / 2
         # pole.v = [(l, b), (l, t), (r, t), (r, b)]
         #
-        # x = self.state
+        x = self.state
         # cartx = x[0] * scale + screen_width / 2.0  # MIDDLE OF CART
         # self.carttrans.set_translation(cartx, carty)
-        self.robottrans.set_translation(100,100)
+
+        robotx = (x[0] + self.world_x_limit) * self.scale
+        roboty = (x[1] + self.world_y_limit) * self.scale
+        # TODO: robot_theta
+        goalx = (x[3] + self.world_x_limit) * self.scale
+        goaly = (x[4] + self.world_y_limit) * self.scale
+        self.robottrans.set_translation(robotx, roboty)
+        self.goaltrans.set_translation(goalx, goaly)
+
+        # Draw line to indicate robot direction
+        # TODO: Implement this
+        direction = rendering.Line((robotx, roboty), (robotx, 0))
+        direction.set_color(0.8, 0.8, 0.8)
+        self.viewer.add_geom(direction)
         # self.poletrans.set_rotation(-x[2])
 
         return self.viewer.render(return_rgb_array=mode == 'rgb_array')
@@ -236,7 +262,7 @@ class NavEnv(gym.Env):
 
 if __name__ == "__main__":
     nav_env = NavEnv()
-    # nav_env.reset()
+    nav_env.reset()
     nav_env.render()
     while True:
         pass
