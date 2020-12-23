@@ -196,6 +196,13 @@ class NavEnv(gym.Env):
             robot.set_color(0.0, 0.1, 0.5)
             self.viewer.add_geom(robot)
 
+            direction = rendering.make_polyline([(0, 0),
+                (self.scale * self.robot_diameter, 0)])
+            self.directiontrans = rendering.Transform()
+            direction.add_attr(self.directiontrans)
+            direction.set_color(0.8, 0.8, 0.8)
+            self.viewer.add_geom(direction)
+
             goal = rendering.make_circle(self.scale * self.goal_diameter)
             self.goaltrans = rendering.Transform()
             goal.add_attr(self.goaltrans)
@@ -240,18 +247,12 @@ class NavEnv(gym.Env):
 
         robotx = (x[0] + self.world_x_limit) * self.scale
         roboty = (x[1] + self.world_y_limit) * self.scale
-        # TODO: robot_theta
         goalx = (x[3] + self.world_x_limit) * self.scale
         goaly = (x[4] + self.world_y_limit) * self.scale
         self.robottrans.set_translation(robotx, roboty)
+        self.directiontrans.set_translation(robotx, roboty)
+        self.directiontrans.set_rotation(x[2])
         self.goaltrans.set_translation(goalx, goaly)
-
-        # Draw line to indicate robot direction
-        # TODO: Implement this
-        direction = rendering.Line((robotx, roboty), (robotx, 0))
-        direction.set_color(0.8, 0.8, 0.8)
-        self.viewer.add_geom(direction)
-        # self.poletrans.set_rotation(-x[2])
 
         return self.viewer.render(return_rgb_array=mode == 'rgb_array')
 
