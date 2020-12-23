@@ -32,7 +32,7 @@ class NavEnv(gym.Env):
     Actions:
         Type: Box(2)
         Num   Action                      Min           Max
-        0     Linear velocity (m/s)       -0.2          0.5
+        0     Linear velocity (m/s)       -0.5          0.5
         1     Steering (rad/s)            -3            3
 
     Reward:
@@ -66,8 +66,10 @@ class NavEnv(gym.Env):
         # self.length = 0.5  # actually half the pole's length
         # self.polemass_length = (self.masspole * self.length)
         # self.force_mag = 10.0
-        self.robot_diameter = 0.1
-        self.goal_diameter = 0.3
+        self.robot_diameter = 0.1 # meters
+        self.goal_diameter = 0.3 # meters
+        self.max_linear_vel = 0.4 # meters/sec
+        self.max_angular_vel = 5 # radians/sec
 
         # Distance at which to fail the episode
         # self.theta_threshold_radians = 12 * 2 * math.pi / 360
@@ -90,9 +92,19 @@ class NavEnv(gym.Env):
         #                  np.finfo(np.float32).max],
         #                 dtype=np.float32)
         #
-        # self.action_space = spaces.Discrete(2)
-        # self.observation_space = spaces.Box(-high, high, dtype=np.float32)
-        #
+        # Set constraints on action and observation spaces
+        action_lim = np.array([self.max_linear_vel,
+                               self.max_angular_vel],
+                              dtype=np.float32)
+        obs_lim = np.array([self.world_x_limit,
+                            self.world_y_limit,
+                            np.pi,
+                            self.world_x_limit,
+                            self.world_y_limit],
+                           dtype=np.float32)
+        self.action_space = spaces.Box(-action_lim, action_lim, dtype=np.float32)
+        self.observation_space = spaces.Box(-obs_lim, obs_lim, dtype=np.float32)
+
         self.seed()
         self.viewer = None
         self.state = None
@@ -104,8 +116,30 @@ class NavEnv(gym.Env):
         return [seed]
 
     def step(self, action):
-        # err_msg = "%r (%s) invalid" % (action, type(action))
-        # assert self.action_space.contains(action), err_msg
+        print("Previous state:")
+        print(self.state)
+        print("Action:")
+        print(action)
+        err_msg = "%r (%s) invalid" % (action, type(action))
+        assert self.action_space.contains(action), err_msg
+
+        r_x, r_y, r_theta, g_x, g_y = self.state
+        lin_vel, ang_vel = action
+
+        r_theta += self.tau * ang_vel
+        # TODO: Add bound limiting on theta
+        r_x += lin_vel*np.cos(r_theta)
+        r_y += lin_vel*np.sin(r_theta)
+        print(r_theta)
+        print(lin_vel)
+
+        self.state = (r_x, r_y, r_theta, g_x, g_y)
+        print("Current state:")
+        print(self.state)
+
+        # theta =
+        # dx =
+        # self.tau
         #
         # x, x_dot, theta, theta_dot = self.state
         # force = self.force_mag if action == 1 else -self.force_mag
@@ -156,7 +190,7 @@ class NavEnv(gym.Env):
         #     reward = 0.0
         #
         # return np.array(self.state), reward, done, {}
-        pass
+
 
     def reset(self):
         # State: robot-x, robot-y, robot-theta, goal-x, goal-y
@@ -262,8 +296,16 @@ class NavEnv(gym.Env):
             self.viewer = None
 
 if __name__ == "__main__":
+    import time
     nav_env = NavEnv()
     nav_env.reset()
+
+    nav_env.render()
+
+    time.sleep(1)
+    sample_action = nav_env.action_space.sample()
+    nav_env.step(sample_action)
+
     nav_env.render()
     while True:
         pass
