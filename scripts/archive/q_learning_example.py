@@ -1,3 +1,4 @@
+#https://www.geeksforgeeks.org/q-learning-in-python/
 import gym
 import itertools
 import matplotlib
@@ -6,14 +7,13 @@ import numpy as np
 import pandas as pd
 import sys
 
-
 from collections import defaultdict
 from windy_gridworld import WindyGridworldEnv
+from cartpole import CartPoleEnv
 import plotting
 
 matplotlib.style.use('ggplot')
 
-env = WindyGridworldEnv()
 
 def createEpsilonGreedyPolicy(Q, epsilon, num_actions):
     """
@@ -29,8 +29,11 @@ def createEpsilonGreedyPolicy(Q, epsilon, num_actions):
 
         Action_probabilities = np.ones(num_actions,
                 dtype = float) * epsilon / num_actions
-
+        print(Action_probabilities)
+        # print(Q)
+        print(state)
         best_action = np.argmax(Q[state])
+
         Action_probabilities[best_action] += (1.0 - epsilon)
         return Action_probabilities
 
@@ -46,7 +49,11 @@ def qLearning(env, num_episodes, discount_factor = 1.0,
     # Action value function
     # A nested dictionary that maps
     # state -> (action -> action-value).
+
+    # Note: doesn't work for continuous case because it's not discrete - also, state is not
+    # represented with 1 number
     Q = defaultdict(lambda: np.zeros(env.action_space.n))
+    print(Q)
 
     # Keeps track of useful statistics
     stats = plotting.EpisodeStats(
@@ -64,37 +71,41 @@ def qLearning(env, num_episodes, discount_factor = 1.0,
         state = env.reset()
 
         for t in itertools.count():
-
+            env.render()
             # get probabilities of all actions from current state
             action_probabilities = policy(state)
-
-            # choose action according to
-            # the probability distribution
-            action = np.random.choice(np.arange(
-                      len(action_probabilities)),
-                       p = action_probabilities)
-
-            # take action and get reward, transit to next state
-            next_state, reward, done, _ = env.step(action)
-
-            # Update statistics
-            stats.episode_rewards[ith_episode] += reward
-            stats.episode_lengths[ith_episode] = t
-
-            # TD Update
-            best_next_action = np.argmax(Q[next_state])
-            td_target = reward + discount_factor * Q[next_state][best_next_action]
-            td_delta = td_target - Q[state][action]
-            Q[state][action] += alpha * td_delta
-
-            # done is True if episode terminated
-            if done:
-                break
-
-            state = next_state
+            #
+            # # choose action according to
+            # # the probability distribution
+            # action = np.random.choice(np.arange(
+            #           len(action_probabilities)),
+            #            p = action_probabilities)
+            #
+            # # take action and get reward, transit to next state
+            # next_state, reward, done, _ = env.step(action)
+            #
+            # # Update statistics
+            # stats.episode_rewards[ith_episode] += reward
+            # stats.episode_lengths[ith_episode] = t
+            #
+            # # TD Update
+            # best_next_action = np.argmax(Q[next_state])
+            # td_target = reward + discount_factor * Q[next_state][best_next_action]
+            # td_delta = td_target - Q[state][action]
+            # Q[state][action] += alpha * td_delta
+            #
+            # # done is True if episode terminated
+            # if done:
+            #     break
+            #
+            # state = next_state
+            return
 
     return Q, stats
 
+env = CartPoleEnv()
+# env = WindyGridworldEnv()
+
 Q, stats = qLearning(env, 1000)
 
-plotting.plot_episode_stats(stats) 
+plotting.plot_episode_stats(stats)
