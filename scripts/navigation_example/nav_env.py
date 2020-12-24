@@ -1,8 +1,8 @@
 """
-Classic cart-pole system implemented by Rich Sutton et al.
-Copied from http://incompleteideas.net/sutton/book/code/pole.c
-permalink: https://perma.cc/C9ZM-652R
+Simple system where a robot attempts to navigate towards a goal.
+Based on cartpole example
 
+Helpful Inpsiration:
 Car racing example: https://github.com/openai/gym/blob/master/gym/envs/box2d/car_racing.py
 """
 
@@ -36,8 +36,9 @@ class NavEnv(gym.Env):
         1     Steering (rad/s)            -3            3
 
     Reward:
-        Reward is -0.1 for every time step, +10000 for reaching the goal, and
-        -10000 for leaving the map, +10 * traversed distance to goal (NOTE: need to save distance covered - negative if move away)
+        Reward is -0.7 for every time step, +100000 for reaching the goal, and
+        -100000 for leaving the map, +0.3 * traversed distance to goal in the
+        last timestep
 
     Starting State:
         All observations are assigned a uniform random value in [-0.05..0.05]
@@ -59,13 +60,6 @@ class NavEnv(gym.Env):
 
     def __init__(self):
         # Environment parameters
-        # self.gravity = 9.8
-        # self.masscart = 1.0
-        # self.masspole = 0.1
-        # self.total_mass = (self.masspole + self.masscart)
-        # self.length = 0.5  # actually half the pole's length
-        # self.polemass_length = (self.masspole * self.length)
-        # self.force_mag = 10.0
         self.robot_diameter = 0.3 # meters
         self.goal_diameter = 0.4 # meters
         self.max_linear_vel = 0.4 # meters/sec
@@ -78,8 +72,6 @@ class NavEnv(gym.Env):
         self.distance_reward = 0.3
 
         # Distance at which to fail the episode
-        # self.theta_threshold_radians = 12 * 2 * math.pi / 360
-        # self.x_threshold = 2.4
         self.world_x_limit = 3
         self.world_y_limit = 2
 
@@ -90,14 +82,6 @@ class NavEnv(gym.Env):
         # Meters to pixels conversion for render
         self.scale = 150
 
-        # Angle limit set to 2 * theta_threshold_radians so failing observation
-        # is still within bounds.
-        # high = np.array([self.x_threshold * 2,
-        #                  np.finfo(np.float32).max,
-        #                  self.theta_threshold_radians * 2,
-        #                  np.finfo(np.float32).max],
-        #                 dtype=np.float32)
-        #
         # Set constraints on action and observation spaces
         action_lim = np.array([self.max_linear_vel,
                                self.max_angular_vel],
@@ -123,10 +107,6 @@ class NavEnv(gym.Env):
 
     def step(self, action):
         # Update state ---------------------------------------------------------
-        # print("Previous state:")
-        # print(self.state)
-        # print("Action:")
-        # print(action)
         err_msg = "%r (%s) invalid" % (action, type(action))
         assert self.action_space.contains(action), err_msg
 
@@ -141,12 +121,8 @@ class NavEnv(gym.Env):
 
         r_x += lin_vel*np.cos(r_theta)
         r_y += lin_vel*np.sin(r_theta)
-        # print(r_theta)
-        # print(lin_vel)
 
         self.state = (r_x, r_y, r_theta, g_x, g_y)
-        # print("Current state:")
-        # print(self.state)
 
         # Update reward --------------------------------------------------------
         # Check if robot is within goal
@@ -160,12 +136,12 @@ class NavEnv(gym.Env):
             or r_y < -self.world_x_limit
             or r_y > self.world_x_limit)
 
+        # Compute rewards
         if not within_goal and not outside_limit:
-            # We're not done yet
+            # We're not done yet - neither terminating case has been reached
             done = False
             dist_delta = self.prev_dist - curr_dist
             reward = self.time_reward + (dist_delta * self.distance_reward)
-
 
         elif self.steps_beyond_done is None:
             # We just reached a terminating case
@@ -192,27 +168,6 @@ class NavEnv(gym.Env):
 
         return np.array(self.state), reward, done, {}
 
-
-        # if not done:
-        #     reward = 1.0
-        # elif self.steps_beyond_done is None:
-        #     # Pole just fell!
-        #     self.steps_beyond_done = 0
-        #     reward = 1.0
-        # else:
-        #     if self.steps_beyond_done == 0:
-        #         logger.warn(
-        #             "You are calling 'step()' even though this "
-        #             "environment has already returned done = True. You "
-        #             "should always call 'reset()' once you receive 'done = "
-        #             "True' -- any further steps are undefined behavior."
-        #         )
-        #     self.steps_beyond_done += 1
-        #     reward = 0.0
-        #
-        # return np.array(self.state), reward, done, {}
-
-
     def reset(self):
         # State: robot-x, robot-y, robot-theta, goal-x, goal-y
         self.state = [self.np_random.uniform(low=-self.world_x_limit,
@@ -237,12 +192,6 @@ class NavEnv(gym.Env):
         world_width = self.world_x_limit * 2
         world_height = self.world_y_limit * 2
 
-        # carty = 100  # TOP OF CART
-        # polewidth = 10.0
-        # polelen = scale * (2 * self.length)
-        # cartwidth = 50.0
-        # cartheight = 30.0
-
         if self.viewer is None:
             from gym.envs.classic_control import rendering
             self.viewer = rendering.Viewer(screen_width, screen_height)
@@ -265,41 +214,10 @@ class NavEnv(gym.Env):
             goal.set_color(0.1, 0.5, 0.1)
             self.viewer.add_geom(goal)
 
-            # l, r, t, b = -cartwidth / 2, cartwidth / 2, cartheight / 2, -cartheight / 2
-            # axleoffset = cartheight / 4.0
-            # cart = rendering.FilledPolygon([(l, b), (l, t), (r, t), (r, b)])
-            # self.carttrans = rendering.Transform()
-            # cart.add_attr(self.carttrans)
-            # self.viewer.add_geom(cart)
-            # l, r, t, b = -polewidth / 2, polewidth / 2, polelen - polewidth / 2, -polewidth / 2
-            # pole = rendering.FilledPolygon([(l, b), (l, t), (r, t), (r, b)])
-            # pole.set_color(.8, .6, .4)
-            # self.poletrans = rendering.Transform(translation=(0, axleoffset))
-            # pole.add_attr(self.poletrans)
-            # pole.add_attr(self.carttrans)
-            # self.viewer.add_geom(pole)
-            # self.axle = rendering.make_circle(polewidth/2)
-            # self.axle.add_attr(self.poletrans)
-            # self.axle.add_attr(self.carttrans)
-            # self.axle.set_color(.5, .5, .8)
-            # self.viewer.add_geom(self.axle)
-            # self.track = rendering.Line((0, carty), (screen_width, carty))
-            # self.track.set_color(0, 0, 0)
-            # self.viewer.add_geom(self.track)
-            #
-            # self._pole_geom = pole
-
         if self.state is None:
             return None
 
-        # Edit the pole polygon vertex
-        # pole = self._pole_geom
-        # l, r, t, b = -polewidth / 2, polewidth / 2, polelen - polewidth / 2, -polewidth / 2
-        # pole.v = [(l, b), (l, t), (r, t), (r, b)]
-        #
         x = self.state
-        # cartx = x[0] * scale + screen_width / 2.0  # MIDDLE OF CART
-        # self.carttrans.set_translation(cartx, carty)
 
         robotx = (x[0] + self.world_x_limit) * self.scale
         roboty = (x[1] + self.world_y_limit) * self.scale
@@ -318,11 +236,10 @@ class NavEnv(gym.Env):
             self.viewer = None
 
 if __name__ == "__main__":
+    # For testing step functions
     import time
     nav_env = NavEnv()
     nav_env.reset()
-
-    # nav_env.render()
 
     time.sleep(1)
     sample_action = nav_env.action_space.sample()
