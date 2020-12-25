@@ -109,7 +109,6 @@ class NavEnv(gym.Env):
         # Update state ---------------------------------------------------------
         err_msg = "%r (%s) invalid" % (action, type(action))
         assert self.action_space.contains(action), err_msg
-        print(action)
 
         r_x, r_y, r_theta, g_x, g_y = self.state
         lin_vel, ang_vel = action

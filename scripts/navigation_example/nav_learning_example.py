@@ -75,7 +75,6 @@ class NavigationQAgent():
                 input_range_size = (upper_bounds[i] - lower_bounds[i]) / num_buckets[i]
                 new_input = int((input[i] - lower_bounds[i]) // input_range_size)
                 discretized.append(new_input)
-        print(discretized)
         return tuple(discretized)
 
     def discretize_state(self, state):
@@ -96,7 +95,6 @@ class NavigationQAgent():
         return tuple(undiscretized)
 
     def choose_action(self, state):
-        print("CHOOSING ACTION")
         if (np.random.random() < self.epsilon):
             # Explore based on the current value of the epsilon
             return self.env.action_space.sample()
@@ -139,8 +137,6 @@ class NavigationQAgent():
             done = False
 
             while not done:
-                if e%10 == 0:
-                    self.env.render()
                 t = t+1
                 action = self.choose_action(current_state)
                 obs, reward, done, _ = self.env.step(action)
@@ -151,7 +147,14 @@ class NavigationQAgent():
 
                 stats.episode_rewards[e] += reward
                 stats.episode_lengths[e] = t
-            print(stats.episode_rewards[e])
+
+                if e%100 == 0:
+                    # Render every 10 episodes
+                    # self.env.render()
+                    # Print stats every 10 episodes
+                    if t == 1:
+                        print("Episode: " + str(e))
+                        print("Rewards: " + str(stats.episode_rewards[e]))
 
         print('Finished training!')
         return stats
@@ -161,16 +164,15 @@ class NavigationQAgent():
         t = 0
         done = False
         current_state = self.discretize_state(self.env.reset())
-        print(current_state)
-        # while not done:
-        #         self.env.render()
-        #         t = t+1
-        #         action = self.choose_action(current_state)
-        #         obs, reward, done, _ = self.env.step(action)
-        #         new_state = self.discretize_state(obs)
-        #         current_state = new_state
-        #
-        # return t
+
+        while not done:
+                self.env.render()
+                t = t+1
+                action = self.choose_action(current_state)
+                obs, reward, done, _ = self.env.step(action)
+                new_state = self.discretize_state(obs)
+                current_state = new_state
+        return t
 
 
 
@@ -178,5 +180,5 @@ if __name__ == "__main__":
     agent = NavigationQAgent()
     stats = agent.train()
     t = agent.run()
-    # print("Time", t)
-    # plotting.plot_episode_stats(stats)
+    print("Time", t)
+    plotting.plot_episode_stats(stats)
