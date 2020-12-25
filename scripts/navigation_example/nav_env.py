@@ -61,7 +61,7 @@ class NavEnv(gym.Env):
     def __init__(self):
         # Environment parameters
         self.robot_diameter = 0.3 # meters
-        self.goal_diameter = 0.4 # meters
+        self.goal_diameter = 1.0 # meters
         self.max_linear_vel = 0.4 # meters/sec
         self.max_angular_vel = 5 # radians/sec
 
@@ -109,6 +109,7 @@ class NavEnv(gym.Env):
         # Update state ---------------------------------------------------------
         err_msg = "%r (%s) invalid" % (action, type(action))
         assert self.action_space.contains(action), err_msg
+        print(action)
 
         r_x, r_y, r_theta, g_x, g_y = self.state
         lin_vel, ang_vel = action
