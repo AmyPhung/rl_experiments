@@ -66,14 +66,15 @@ class NavEnv(gym.Env):
         self.max_angular_vel = 5 # radians/sec
 
         # Rewards
-        self.goal_reward = 100000
-        self.exit_reward = -100000
-        self.time_reward = -0.7
+        self.goal_reward = 1000
+        self.exit_reward = -100
+        # self.time_reward = -0.7
         self.distance_reward = 0.3
 
         # Distance at which to fail the episode
         self.world_x_limit = 3
         self.world_y_limit = 2
+        self.max_steps = 500
 
         # State update parameters
         self.tau = 0.02  # seconds between state updates
@@ -100,12 +101,14 @@ class NavEnv(gym.Env):
         self.state = None
         self.steps_beyond_done = None
         self.prev_dist = None
+        self.num_steps = None
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
     def step(self, action):
+        self.num_steps += 1
         # Update state ---------------------------------------------------------
         err_msg = "%r (%s) invalid" % (action, type(action))
         assert self.action_space.contains(action), err_msg
@@ -136,12 +139,15 @@ class NavEnv(gym.Env):
             or r_y < -self.world_x_limit
             or r_y > self.world_x_limit)
 
+        # Check if we've gone over our time limit
+        over_time = bool(self.num_steps > self.max_steps)
+
         # Compute rewards
-        if not within_goal and not outside_limit:
+        if not within_goal and not outside_limit and not over_time:
             # We're not done yet - neither terminating case has been reached
             done = False
             dist_delta = self.prev_dist - curr_dist
-            reward = self.time_reward + (dist_delta * self.distance_reward)
+            reward = (dist_delta * self.distance_reward) #+ self.time_reward
 
         elif self.steps_beyond_done is None:
             # We just reached a terminating case
@@ -152,6 +158,10 @@ class NavEnv(gym.Env):
 
             elif within_goal:
                 reward = self.goal_reward
+                self.steps_beyond_done = 0
+
+            elif over_time:
+                reward = self.exit_reward
                 self.steps_beyond_done = 0
         else:
             # We've reached a terminating case again
@@ -181,6 +191,7 @@ class NavEnv(gym.Env):
                       self.np_random.uniform(low=-self.world_y_limit,
                                              high=self.world_y_limit)]
         self.steps_beyond_done = None
+        self.num_steps = 0
         r_x, r_y, r_theta, g_x, g_y = self.state
         self.prev_dist = np.linalg.norm([r_x-g_x, r_y-g_y])
         return np.array(self.state)

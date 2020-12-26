@@ -22,12 +22,15 @@ import math
 
 from nav_env import NavEnv
 import plotting
+from scores.score_logger import ScoreLogger
+
+ENV_NAME = 'navigationV0.4'
 
 class NavigationQAgent():
     def __init__(self,
-                 obs_buckets=(3, 3, 6, 3, 3),
+                 obs_buckets=(4, 4, 6, 4, 4),
                  act_buckets=(3, 3),
-                 num_episodes=1000,
+                 num_episodes=100000,
                  min_lr=0.1,
                  min_epsilon=0.1,
                  discount=1.0,
@@ -128,6 +131,8 @@ class NavigationQAgent():
             episode_lengths = np.zeros(self.num_episodes),
             episode_rewards = np.zeros(self.num_episodes))
 
+        score_logger = ScoreLogger(ENV_NAME)
+
         for e in range(self.num_episodes):
             current_state = self.discretize_state(self.env.reset())
 
@@ -148,11 +153,14 @@ class NavigationQAgent():
                 stats.episode_rewards[e] += reward
                 stats.episode_lengths[e] = t
 
+                if done:
+                    score_logger.add_score(stats.episode_rewards[e], e)
+
                 if e%100 == 0:
                     # Render every 10 episodes
                     # self.env.render()
                     # Print stats every 10 episodes
-                    if t == 1:
+                    if done:
                         print("Episode: " + str(e))
                         print("Rewards: " + str(stats.episode_rewards[e]))
 
@@ -160,7 +168,7 @@ class NavigationQAgent():
         return stats
 
     def run(self):
-        self.env = gym.wrappers.Monitor(self.env,'navigationV0.1')
+        self.env = gym.wrappers.Monitor(self.env,ENV_NAME,force=True)
         t = 0
         done = False
         current_state = self.discretize_state(self.env.reset())
