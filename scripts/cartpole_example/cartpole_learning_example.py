@@ -12,7 +12,7 @@ from cartpole_env import CartPoleEnv
 import plotting
 
 class CartPoleQAgent():
-    def __init__(self, buckets=(1, 1, 6, 12), num_episodes=1000, min_lr=0.1, min_epsilon=0.1, discount=1.0, decay=25):
+    def __init__(self, buckets=(3, 1, 6, 12), num_episodes=1000, min_lr=0.1, min_epsilon=0.1, discount=1.0, decay=25):
         self.buckets = buckets
         self.num_episodes = num_episodes
         self.min_lr = min_lr
@@ -66,7 +66,8 @@ class CartPoleQAgent():
             done = False
 
             while not done:
-                # self.env.render()
+                # if t%10 == 0:
+                #     self.env.render()
                 t = t+1
                 action = self.choose_action(current_state)
                 obs, reward, done, _ = self.env.step(action)
@@ -78,6 +79,7 @@ class CartPoleQAgent():
                 stats.episode_lengths[e] = t
 
         print('Finished training!')
+        #     self.env.render()
         return stats
 
     def run(self):
