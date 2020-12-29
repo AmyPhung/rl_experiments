@@ -20,7 +20,7 @@ class TaxiQAgent():
         self.Q = np.zeros((self.state_space, self.action_space))
 
         # Define hyperparameters
-        self.total_episodes = 100#25000        # Total number of training episodes
+        self.total_episodes = 25000        # Total number of training episodes
         self.total_test_episodes = 100     # Total number of test episodes
         self.max_steps = 200               # Max steps per episode
 
@@ -69,7 +69,7 @@ class TaxiQAgent():
                                             np.max(self.Q[new_state]) - self.Q[state][action])
 
                 # Save stats
-                print(self.data_saver.stats.episode_rewards)
+                # print(self.data_saver.stats.episode_rewards)
                 self.data_saver.stats.episode_rewards[episode] += reward
                 self.data_saver.stats.episode_lengths[episode] = step
 
@@ -84,9 +84,26 @@ class TaxiQAgent():
         print("Finished Training!")
         self.data_saver.plot_and_save_stats()
 
+    def test(self):
+        self.env = gym.wrappers.Monitor(self.env, self.data_saver.save_dir, force=True)
+        t = 0
+        done = False
+        current_state = self.env.reset()
+
+        while not done:
+            self.env.render()
+            t = t+1
+            action = self.epsilon_greedy_policy(current_state)
+            new_state, reward, done, _ = self.env.step(action)
+            current_state = new_state
+        return t
+
 
 if __name__ == "__main__":
     taxi_q_agent = TaxiQAgent()
     taxi_q_agent.env.render()
 
     taxi_q_agent.train()
+    taxi_q_agent.test()
+
+    taxi_q_agent.env.close()

@@ -74,6 +74,7 @@ class DataSaver():
         fig2.savefig(self.save_dir + "/reward_over_time")
         fig3.savefig(self.save_dir + "/episode_per_timestep")
 
+
 if __name__ == "__main__":
     ds = DataSaver("testing", 10)
 #
