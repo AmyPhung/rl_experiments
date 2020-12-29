@@ -5,11 +5,14 @@ https://thomassimonini.medium.com/q-learning-lets-create-an-autonomous-taxi-part
 import numpy as np
 import gym
 import random
+from data_saver import DataSaver
+
+ENV_NAME = "Taxi-v3"
 
 class TaxiQAgent():
     def __init__(self):
         # Create environment
-        self.env = gym.make("Taxi-v3")
+        self.env = gym.make(ENV_NAME)
         self.state_space = self.env.observation_space.n
         self.action_space = self.env.action_space.n
 
@@ -17,7 +20,7 @@ class TaxiQAgent():
         self.Q = np.zeros((self.state_space, self.action_space))
 
         # Define hyperparameters
-        self.total_episodes = 25000        # Total number of training episodes
+        self.total_episodes = 100#25000        # Total number of training episodes
         self.total_test_episodes = 100     # Total number of test episodes
         self.max_steps = 200               # Max steps per episode
 
@@ -29,6 +32,8 @@ class TaxiQAgent():
         self.max_epsilon = 1.0             # Exploration probability at start
         self.min_epsilon = 0.001           # Minimum exploration probability
         self.decay_rate = 0.01             # Exponential decay rate for exploration prob
+
+        self.data_saver = DataSaver(ENV_NAME, self.total_episodes)
 
     def epsilon_greedy_policy(self, state):
         # if random number > greater than epsilon --> exploitation
@@ -62,12 +67,22 @@ class TaxiQAgent():
                 # Update Q(s,a):= Q(s,a) + lr [R(s,a) + gamma * max Q(s',a') - Q(s,a)]
                 self.Q[state][action] = self.Q[state][action] + self.learning_rate * (reward + self.gamma *
                                             np.max(self.Q[new_state]) - self.Q[state][action])
+
+                # Save stats
+                print(self.data_saver.stats.episode_rewards)
+                self.data_saver.stats.episode_rewards[episode] += reward
+                self.data_saver.stats.episode_lengths[episode] = step
+
                 # If done : finish episode
                 if done == True:
+                    # score_logger.add_score(stats.episode_rewards[e], e)
                     break
 
                 # Our new state is state
                 state = new_state
+
+        print("Finished Training!")
+        self.data_saver.plot_and_save_stats()
 
 
 if __name__ == "__main__":
