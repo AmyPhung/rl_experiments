@@ -69,7 +69,7 @@ def test_model():
 
 class DQNAgent:  # Deep Q-Network
     def __init__(self, model, target_model, env, buffer_size=100, learning_rate=.0015, epsilon=.1, epsilon_dacay=0.995,
-                 min_epsilon=.01, gamma=.95, batch_size=4, target_update_iter=400, train_nums=50, start_learning=10):
+                 min_epsilon=.01, gamma=.95, batch_size=4, target_update_iter=400, train_nums=10, start_learning=10):
         self.model = model
         self.target_model = target_model
         # print(id(self.model), id(self.target_model))  # to make sure the two models don't update simultaneously
@@ -99,7 +99,7 @@ class DQNAgent:  # Deep Q-Network
         self.next_states = np.empty((self.buffer_size,) + self.env.reset().shape)
         self.next_idx = 0
 
-        self.data_saver = DataSaver('NavEnv', self.train_nums)
+        self.data_saver = DataSaver('NavEnv')
 
     def train(self):
         episode = 0
@@ -116,8 +116,7 @@ class DQNAgent:  # Deep Q-Network
 
             # TODO: modify the logger so that the ending episodes don't just have a bunch of 0's
             # would require removing the tuple and using a list isntead in data_saver.py
-            self.data_saver.stats.episode_rewards[episode] += reward
-            self.data_saver.stats.episode_lengths[episode] = t - last_t
+            self.data_saver.add_data_point(episode, t - last_t, reward)
 
             if t > self.start_learning:  # start learning
                 losses = self.train_step()
