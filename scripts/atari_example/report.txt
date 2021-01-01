@@ -1,0 +1,43 @@
+TensorFlow 2.0 Upgrade Script
+-----------------------------
+Converted 1 files
+Detected 1 issues that require attention
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+File: dq_network.py
+--------------------------------------------------------------------------------
+dq_network.py:65:27: ERROR: Using member tf.contrib.layers.flatten in deprecated module tf.contrib. tf.contrib.layers.flatten cannot be converted automatically. tf.contrib will not be distributed with TensorFlow 2.0, please consider an alternative in non-contrib TensorFlow, a community-maintained repository such as tensorflow/addons, or fork the required code.
+================================================================================
+Detailed log follows:
+
+================================================================================
+--------------------------------------------------------------------------------
+Processing file 'dq_network.py'
+ outputting to 'dq_network.py'
+--------------------------------------------------------------------------------
+
+9:13: INFO: Renamed 'tf.variable_scope' to 'tf.compat.v1.variable_scope'
+13:27: INFO: Renamed 'tf.placeholder' to 'tf.compat.v1.placeholder'
+14:28: INFO: Renamed 'tf.placeholder' to 'tf.compat.v1.placeholder'
+17:28: INFO: Renamed 'tf.placeholder' to 'tf.compat.v1.placeholder'
+25:25: INFO: Renamed 'tf.layers.conv2d' to 'tf.compat.v1.layers.conv2d'
+30:61: INFO: Changing tf.contrib.layers xavier initializer to a tf.compat.v1.keras.initializers.VarianceScaling and converting arguments.
+
+40:25: INFO: Renamed 'tf.layers.conv2d' to 'tf.compat.v1.layers.conv2d'
+45:61: INFO: Changing tf.contrib.layers xavier initializer to a tf.compat.v1.keras.initializers.VarianceScaling and converting arguments.
+
+55:25: INFO: Renamed 'tf.layers.conv2d' to 'tf.compat.v1.layers.conv2d'
+60:61: INFO: Changing tf.contrib.layers xavier initializer to a tf.compat.v1.keras.initializers.VarianceScaling and converting arguments.
+
+65:27: ERROR: Using member tf.contrib.layers.flatten in deprecated module tf.contrib. tf.contrib.layers.flatten cannot be converted automatically. tf.contrib will not be distributed with TensorFlow 2.0, please consider an alternative in non-contrib TensorFlow, a community-maintained repository such as tensorflow/addons, or fork the required code.
+67:22: INFO: Renamed 'tf.layers.dense' to 'tf.compat.v1.layers.dense'
+70:57: INFO: Changing tf.contrib.layers xavier initializer to a tf.compat.v1.keras.initializers.VarianceScaling and converting arguments.
+
+73:26: INFO: Renamed 'tf.layers.dense' to 'tf.compat.v1.layers.dense'
+74:61: INFO: Changing tf.contrib.layers xavier initializer to a tf.compat.v1.keras.initializers.VarianceScaling and converting arguments.
+
+81:21: INFO: Added keywords to args of function 'tf.reduce_sum'
+85:24: INFO: Added keywords to args of function 'tf.reduce_mean'
+87:29: INFO: Renamed 'tf.train.AdamOptimizer' to 'tf.compat.v1.train.AdamOptimizer'
+--------------------------------------------------------------------------------
+
