@@ -67,10 +67,10 @@ class NavEnv(gym.Env):
         # self.max_angular_vel = 5 # radians/sec
 
         # Rewards
-        self.goal_reward = 1000
-        self.exit_reward = -100
-        # self.time_reward = -0.7
-        self.distance_reward = 0.3
+        self.goal_reward = 0
+        self.exit_reward = 0
+        self.time_reward = -100
+        self.distance_reward = 0
 
         # Distance at which to fail the episode
         # Note: only use ints - discrete case
@@ -133,6 +133,8 @@ class NavEnv(gym.Env):
         direction += ang_vel
         if direction == 4: # Loop direction
             direction = 0
+        elif direction == -1:
+            direction = 3
 
         r_theta = direction * np.pi/2
 
@@ -146,7 +148,7 @@ class NavEnv(gym.Env):
         curr_dist = np.linalg.norm([r_x-g_x, r_y-g_y])
         within_goal = bool(curr_dist < 0.1)
 
-        # Check if we left the field
+        # Check if we hit the edge of field
         outside_limit = bool(
             r_x < 0
             or r_x >= self.world_x_limit
@@ -161,7 +163,7 @@ class NavEnv(gym.Env):
             # We're not done yet - neither terminating case has been reached
             done = False
             dist_delta = self.prev_dist - curr_dist
-            reward = (dist_delta * self.distance_reward) #+ self.time_reward
+            reward = (dist_delta * self.distance_reward) + self.time_reward
 
         elif self.steps_beyond_done is None:
             # We just reached a terminating case
@@ -190,21 +192,21 @@ class NavEnv(gym.Env):
             self.steps_beyond_done += 1
             reward = 0.0
 
-        return np.array(self.state), reward, done, {}
+        return tuple(np.array(self.state, dtype=int)), reward, done, {}
 
     def reset(self):
         # State: robot-x, robot-y, robot-theta, goal-x, goal-y
-        self.state = [self.np_random.randint(low=0, high=self.world_x_limit),
-                      self.np_random.randint(low=0, high=self.world_y_limit),
-                      self.np_random.randint(low=0, high=4), # up/down/left/right
-                      self.np_random.randint(low=0, high=self.world_x_limit),
-                      self.np_random.randint(low=0, high=self.world_y_limit)]
+        self.state = [1,#self.np_random.randint(low=1, high=self.world_x_limit-1),
+                      1,#self.np_random.randint(low=1, high=self.world_y_limit-1),
+                      self.np_random.randint(low=1, high=4), # up/down/left/right
+                      8,#,self.np_random.randint(low=1, high=self.world_x_limit),
+                      3]#self.np_random.randint(low=1, high=self.world_y_limit)]
 
         self.steps_beyond_done = None
         self.num_steps = 0
         r_x, r_y, r_theta, g_x, g_y = self.state
         self.prev_dist = np.linalg.norm([r_x-g_x, r_y-g_y])
-        return np.array(self.state)
+        return tuple(self.state)
 
     def render(self, mode='human'):
         screen_width = int(self.scale * self.world_x_limit)

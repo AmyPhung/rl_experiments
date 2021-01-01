@@ -1,11 +1,25 @@
 """
 https://thomassimonini.medium.com/q-learning-lets-create-an-autonomous-taxi-part-2-2-8cbafa19d7f5
+
+500 states
+    5x5 grid creates...
+        25 places for taxi (unloaded)
+            *4 possible starting locations for passenger
+            *4 possible goal locations
+        = 400
+        25 places for taxi (loaded)
+            *4 possible goal locations
+        = 100
+6 actions (up/down/left/right, pickup, dropoff)
+
+Trains in ~30 sec
 """
 
 import numpy as np
 import gym
 import random
 from data_saver import DataSaver
+import time
 
 ENV_NAME = "Taxi-v3"
 
@@ -103,7 +117,10 @@ if __name__ == "__main__":
     taxi_q_agent = TaxiQAgent()
     taxi_q_agent.env.render()
 
+    t_start = time.time()
     taxi_q_agent.train()
-    taxi_q_agent.test()
+    t_end = time.time()
+    print ("Time elapsed: " + str(t_end - t_start))
 
+    taxi_q_agent.test()
     taxi_q_agent.env.close()

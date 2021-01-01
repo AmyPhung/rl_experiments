@@ -37,3 +37,8 @@ Examples in this repo (in order they were attempted):
     + Modified to use a custom "data saver" which is a cleaned-up version of the visualizations I'd used previously
 
 ## Atari
+
+
+
+
+Next goal: use deep q learning for robot navigation example (should work this time )
