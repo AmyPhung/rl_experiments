@@ -5,22 +5,28 @@ Modifications:
 - Uses lists instead of tuples, which allows for dynamic sizes of episodes
 """
 
+import os
+import time
 import matplotlib
+import gym
 import numpy as np
 import pandas as pd
 from collections import namedtuple
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-import os
-
 matplotlib.style.use('ggplot')
 
 class DataSaver():
-    def __init__(self, save_directory, version=0):
+    def __init__(self, env, model, save_directory, version=0):
+        self.env = env
+        self.model = model
+        self.checkpoint_num = 0
+
         self.save_dir = self.create_save_directory(save_directory, version)
         self.episode_lengths = []
         self.episode_rewards = []
+        self.start_time = time.time()
 
     def add_data_point(self, episode, length, reward):
         # Assumes episode numbers are indexed from 0
@@ -33,6 +39,27 @@ class DataSaver():
             self.episode_lengths[episode] = length
             self.episode_rewards[episode] += reward
 
+    def record_checkpoint(self):
+        checkpoint_dir = self.save_dir + "/checkpoint" + str(self.checkpoint_num)
+        # Save current model
+        self.model.save(checkpoint_dir)
+
+        # Render and save video for later viewing
+        env = gym.wrappers.Monitor(self.env, checkpoint_dir, force=True)
+        obs, done, ep_reward = env.reset(), False, 0
+        while not done:
+            action, q_values = self.model.action_value(obs[None])  # Using [None] to extend its dimension (4,) -> (1, 4)
+            obs, reward, done, info = env.step(action)
+            ep_reward += reward
+        env.close()
+
+        # Save current time and reward
+        f = open(checkpoint_dir + "/notes.txt", "a")
+        f.write("Elapsed time: " + str(time.time() - self.start_time))
+        f.write("Test reward: " + str(ep_reward))
+        f.close()
+
+        self.checkpoint_num += 1
 
     def create_save_directory(self, save_directory, version):
         sub_version = 0
@@ -44,6 +71,11 @@ class DataSaver():
 
         os.mkdir(new_save_dir)
         return new_save_dir
+
+    def save_params_to_file(self, summary_string):
+        f = open(self.save_dir + "/notes.txt", "a")
+        f.write(summary_string)
+        f.close()
 
     def plot_episode_stats(self, smoothing_window=1, noshow=False):
         # Plot the episode length over time

@@ -68,8 +68,8 @@ def test_model():
 
 
 class DQNAgent:  # Deep Q-Network
-    def __init__(self, model, target_model, env, buffer_size=100, learning_rate=.0015, epsilon=.1, epsilon_dacay=0.995,
-                 min_epsilon=.01, gamma=.95, batch_size=4, target_update_iter=400, train_nums=700000, start_learning=10):
+    def __init__(self, model, target_model, env, buffer_size=100, learning_rate=.0015, epsilon=.1, epsilon_decay=0.995,
+                 min_epsilon=.01, gamma=.95, batch_size=4, target_update_iter=400, train_nums=2000, start_learning=10):#700000
         self.model = model
         self.target_model = target_model
         # print(id(self.model), id(self.target_model))  # to make sure the two models don't update simultaneously
@@ -81,7 +81,7 @@ class DQNAgent:  # Deep Q-Network
         self.env = env                              # gym environment
         self.lr = learning_rate                     # learning step
         self.epsilon = epsilon                      # e-greedy when exploring
-        self.epsilon_decay = epsilon_dacay          # epsilon decay rate
+        self.epsilon_decay = epsilon_decay          # epsilon decay rate
         self.min_epsilon = min_epsilon              # minimum epsilon
         self.gamma = gamma                          # discount rate
         self.batch_size = batch_size                # batch_size
@@ -99,7 +99,8 @@ class DQNAgent:  # Deep Q-Network
         self.next_states = np.empty((self.buffer_size,) + self.env.reset().shape)
         self.next_idx = 0
 
-        self.data_saver = DataSaver('NavEnv', version=2)
+        self.data_saver = DataSaver(self.env, self.model, 'NavEnv', version=3)
+        self.data_saver.save_params_to_file(self.to_string())
 
     def train(self):
         episode = 0
@@ -126,14 +127,21 @@ class DQNAgent:  # Deep Q-Network
 
             if t % self.target_update_iter == 0:
                 self.update_target_model()
+
             if done:
+                # Record checkpoint every few episodes
+                if episode % 100 == 0:
+                    self.data_saver.record_checkpoint()
+
                 obs = self.env.reset()
                 last_t = t
                 episode += 1
+
             else:
                 obs = next_obs
 
         self.data_saver.plot_and_save_stats()
+        self.data_saver.record_checkpoint()
 
     def train_step(self):
         idxes = self.sample(self.batch_size)
@@ -152,8 +160,9 @@ class DQNAgent:  # Deep Q-Network
 
         return losses
 
-    def evalation(self, env, render=True):
+    def evaluation(self, env, render=True):
         env = gym.wrappers.Monitor(env, self.data_saver.save_dir, force=True)
+
         obs, done, ep_reward = env.reset(), False, 0
         # one episode until done
         while not done:
@@ -162,7 +171,7 @@ class DQNAgent:  # Deep Q-Network
             ep_reward += reward
             if render:  # visually show
                 env.render()
-            time.sleep(0.05)
+            # time.sleep(0.05)
         env.close()
         return ep_reward
 
@@ -204,6 +213,19 @@ class DQNAgent:  # Deep Q-Network
     def e_decay(self):
         self.epsilon *= self.epsilon_decay
 
+    def to_string(self):
+        s = "buffer_size=" + str(self.buffer_size) + ", " + \
+            "learning_rate=" + str(self.lr) + ", " + \
+            "epsilon=" + str(self.epsilon) + ", " + \
+            "epsilon_decay=" + str(self.epsilon_decay) + ", " + \
+            "min_epsilon=" + str(self.min_epsilon) + ", " + \
+            "gamma=" + str(self.gamma) + ", " + \
+            "batch_size=" + str(self.batch_size) + ", " + \
+            "target_update_iter=" + str(self.target_update_iter) + ", " + \
+            "train_nums=" + str(self.train_nums) + ", " + \
+            "start_learning=" + str(self.start_learning)
+        return s
+
 if __name__ == '__main__':
     test_model()
 
@@ -212,16 +234,18 @@ if __name__ == '__main__':
     model = Model(num_actions)
     target_model = Model(num_actions)
     agent = DQNAgent(model, target_model,  env)
-    # test before
-    rewards_sum = agent.evalation(env)
-    print("Before Training: %d out of 200" % rewards_sum) # 9 out of 200
+
+    # print(agent.to_string())
+    # # test before
+    # rewards_sum = agent.evaluation(env, render=False)
+    # print("Before Training: %d out of 200" % rewards_sum) # 9 out of 200
 
     t_start = time.time()
     agent.train()
     t_end = time.time()
     print ("Training time: " + str(t_end - t_start))
 
-    # test after
-    rewards_sum = agent.evalation(env)
-    print("After Training: %d out of 200" % rewards_sum) # 200 out of 200
-    env.close()
+    # # test after
+    # rewards_sum = agent.evaluation(env)
+    # print("After Training: %d out of 200" % rewards_sum) # 200 out of 200
+    # env.close()
