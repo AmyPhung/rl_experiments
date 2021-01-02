@@ -4,6 +4,8 @@ Based on cartpole example
 
 Helpful Inpsiration:
 Car racing example: https://github.com/openai/gym/blob/master/gym/envs/box2d/car_racing.py
+
+Known Bugs: prev dist is never updated
 """
 
 import math
