@@ -8,6 +8,7 @@ Car racing example: https://github.com/openai/gym/blob/master/gym/envs/box2d/car
 Discrete actions, continuous observation space
 
 TODO: maybe we need a reward for turning towards the goal?
+Notes: Our hand-coded "reward function" is the combination of distance & heading. Our RL model will attempt to learn this (in theory, if we just gave our RL model these inputs, it should be a lot easier)
 """
 
 import math
@@ -74,7 +75,8 @@ class NavEnv(gym.Env):
         self.goal_reward = 1000
         self.exit_reward = -100
         # self.time_reward = -0.7
-        self.distance_reward = 0.3
+        self.distance_reward = 0.6 # Avg distance magnitude ~0.01
+        self.angle_reward = 0.1 # Avg angle magnitude ~0.06
 
         # Distance at which to fail the episode
         self.world_x_limit = 2
@@ -108,11 +110,41 @@ class NavEnv(gym.Env):
         self.state = None
         self.steps_beyond_done = None
         self.prev_dist = None
+        self.prev_angle_offset = None
         self.num_steps = None
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
+
+    def _compute_angle_offset(self, r_x, r_y, r_theta, g_x, g_y):
+        # Compute how close to the desired heading we're currently at
+        # 0 means the robot is headed directly towards the goal, -pi or pi
+        # means the robot is headed directly away from the goal
+
+        angle_to_goal = math.atan2(g_y-r_y, g_x-r_x) # In world coords
+
+        # Compute angle difference
+        # positive offset = right turn needed
+        # negative offset = left turn needed
+        angle_offset = r_theta - angle_to_goal
+
+        # Keep angle between -pi and pi
+        angle_offset = self._restrict_angle_range(angle_offset)
+
+        # Only record magnitude
+        return abs(angle_offset)
+
+    def _compute_distance(self, r_x, r_y, g_x, g_y):
+        dist = np.linalg.norm([r_x-g_x, r_y-g_y]) # Euclidian distance
+        return dist
+
+    def _restrict_angle_range(self, theta):
+        # Keep theta within -pi to pi range
+        theta = theta % (2*np.pi)
+        if theta > np.pi:
+            theta -= 2*np.pi
+        return theta
 
     def step(self, action):
         self.num_steps += 1
@@ -137,9 +169,7 @@ class NavEnv(gym.Env):
 
         r_theta += self.tau * ang_vel
         # Keep theta within -pi to pi range
-        r_theta = r_theta % (2*np.pi)
-        if r_theta > np.pi:
-            r_theta -= 2*np.pi
+        r_theta = self._restrict_angle_range(r_theta)
 
         r_x += self.tau * lin_vel * np.cos(r_theta)
         r_y += self.tau * lin_vel * np.sin(r_theta)
@@ -148,7 +178,7 @@ class NavEnv(gym.Env):
 
         # Update reward --------------------------------------------------------
         # Check if robot is within goal
-        curr_dist = np.linalg.norm([r_x-g_x, r_y-g_y])
+        curr_dist = self._compute_distance(r_x, r_y, g_x, g_y)
         within_goal = bool(curr_dist < (self.goal_diameter/2.0 - self.robot_diameter/2.0))
 
         # Check if we left the field
@@ -161,12 +191,19 @@ class NavEnv(gym.Env):
         # Check if we've gone over our time limit
         over_time = bool(self.num_steps > self.max_steps)
 
+        # Compute angle offset
+        curr_angle_offset = self._compute_angle_offset(r_x, r_y, r_theta, g_x, g_y)
+
         # Compute rewards
         if not within_goal and not outside_limit and not over_time:
             # We're not done yet - neither terminating case has been reached
             done = False
             dist_delta = self.prev_dist - curr_dist
-            reward = (dist_delta * self.distance_reward) #+ self.time_reward
+            angle_delta = self.prev_angle_offset - curr_angle_offset
+            reward = (dist_delta * self.distance_reward) + (angle_delta * self.angle_reward) #+ self.time_reward
+
+            self.prev_dist = curr_dist
+            self.prev_angle_offset = curr_angle_offset
 
         elif self.steps_beyond_done is None:
             # We just reached a terminating case
@@ -212,7 +249,8 @@ class NavEnv(gym.Env):
         self.steps_beyond_done = None
         self.num_steps = 0
         r_x, r_y, r_theta, g_x, g_y = self.state
-        self.prev_dist = np.linalg.norm([r_x-g_x, r_y-g_y])
+        self.prev_angle_offset = self._compute_angle_offset(r_x, r_y, r_theta, g_x, g_y)
+        self.prev_dist = self._compute_distance(r_x, r_y, g_x, g_y)
         return np.array(self.state)
 
     def render(self, mode='human'):
@@ -273,7 +311,7 @@ if __name__ == "__main__":
     nav_env.reset()
 
     time.sleep(1)
-    sample_action = nav_env.action_space.sample()
+    sample_action = 0#nav_env.action_space.sample()
 
     while True:
         nav_env.render()
