@@ -8,6 +8,17 @@ Car racing example: https://github.com/openai/gym/blob/master/gym/envs/box2d/car
 Discrete actions, continuous observation space
 
 TODO: maybe we need a reward for turning towards the goal?
+TODO: Make reward scaling more correct
+TODO: Make sure the robot won't spawn in the goal
+TODO: Make new text logging, record training time
+(put this in a file self, model, target_model, env, buffer_size=100, learning_rate=.0015, epsilon=.1, epsilon_dacay=0.995,
+             min_epsilon=.01, gamma=.95, batch_size=4, target_update_iter=400, train_nums=50000, start_learning=10)
+TODO: Make stats save every few episodes instead of all at once, save actual model
+
+Things to try:
+- fix bug in angles at edge (wrapping at 0)
+- add cost to staying still
+- keeping spawn locations fixed
 Notes: Our hand-coded "reward function" is the combination of distance & heading. Our RL model will attempt to learn this (in theory, if we just gave our RL model these inputs, it should be a lot easier)
 """
 
@@ -75,12 +86,13 @@ class NavEnv(gym.Env):
         self.goal_reward = 1000
         self.exit_reward = -100
         # self.time_reward = -0.7
-        self.distance_reward = 0.6 # Avg distance magnitude ~0.01
-        self.angle_reward = 0.1 # Avg angle magnitude ~0.06
+        self.distance_reward = 12 # Avg distance magnitude ~0.01
+        self.angle_reward = 2 # Avg angle magnitude ~0.06
 
         # Distance at which to fail the episode
         self.world_x_limit = 2
         self.world_y_limit = 3
+        self.edge_buffer = 0.5 # Distance from edge to avoid spawning in
         self.max_steps = 500
 
         # State update parameters
@@ -236,16 +248,16 @@ class NavEnv(gym.Env):
 
     def reset(self):
         # State: robot-x, robot-y, robot-theta, goal-x, goal-y
-        self.state = [self.np_random.uniform(low=0,
-                                             high=self.world_x_limit),
-                      self.np_random.uniform(low=0,
-                                             high=self.world_y_limit),
+        self.state = [self.np_random.uniform(low=self.edge_buffer,
+                                             high=self.world_x_limit-self.edge_buffer),
+                      self.np_random.uniform(low=self.edge_buffer,
+                                             high=self.world_y_limit-self.edge_buffer),
                       self.np_random.uniform(low=-np.pi,
                                              high=np.pi),
-                      self.np_random.uniform(low=0,
-                                             high=self.world_x_limit),
-                      self.np_random.uniform(low=0,
-                                             high=self.world_y_limit)]
+                      self.np_random.uniform(low=self.edge_buffer,
+                                             high=self.world_x_limit-self.edge_buffer),
+                      self.np_random.uniform(low=self.edge_buffer,
+                                             high=self.world_y_limit-self.edge_buffer)]
         self.steps_beyond_done = None
         self.num_steps = 0
         r_x, r_y, r_theta, g_x, g_y = self.state

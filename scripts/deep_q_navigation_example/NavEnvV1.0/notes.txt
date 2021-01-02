@@ -1,0 +1,3 @@
+Training time: 6349.879543304443
+
+buffer_size=100, learning_rate=.0015, epsilon=.1, epsilon_dacay=0.995, min_epsilon=.01, gamma=.95, batch_size=4, target_update_iter=400, train_nums=100000, start_learning=10):

@@ -1,0 +1,3 @@
+Training time: 43102.03076720238
+buffer_size=100, learning_rate=.0015, epsilon=.1, epsilon_dacay=0.995, min_epsilon=.01, gamma=.95, batch_size=4, target_update_iter=400, train_nums=700000, start_learning=10
+Notes: generally appears to have learned to turn in place forever - maybe in an attempt to exploit the bug? Maybe also because there's no penalty for staying still
