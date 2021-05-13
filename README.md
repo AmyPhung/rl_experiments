@@ -40,5 +40,8 @@ Examples in this repo (in order they were attempted):
 
 
 
-
-Next goal: use deep q learning for robot navigation example (should work this time )
+# TODO:
++ use deep q learning for robot navigation example
+    + fix bug in angle delta computing
+    + add time penalty
+    + Improve model and stats saving

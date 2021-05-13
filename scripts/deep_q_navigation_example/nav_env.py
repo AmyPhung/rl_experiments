@@ -85,9 +85,10 @@ class NavEnv(gym.Env):
         # Rewards
         self.goal_reward = 1000
         self.exit_reward = -100
-        # self.time_reward = -0.7
+        self.time_reward = -1
         self.distance_reward = 12 # Avg distance magnitude ~0.01
-        self.angle_reward = 2 # Avg angle magnitude ~0.06
+        # self.angle_reward = 0 # Avg angle magnitude ~0.06
+        self.angle_reward = 1.5 # Avg angle magnitude ~0.06
 
         # Distance at which to fail the episode
         self.world_x_limit = 2
@@ -212,7 +213,11 @@ class NavEnv(gym.Env):
             done = False
             dist_delta = self.prev_dist - curr_dist
             angle_delta = self.prev_angle_offset - curr_angle_offset
-            reward = (dist_delta * self.distance_reward) + (angle_delta * self.angle_reward) #+ self.time_reward
+
+            if angle_delta > 0.5:
+                print("Super big delta detected!")
+
+            reward = (dist_delta * self.distance_reward) + (angle_delta * self.angle_reward) + self.time_reward
 
             self.prev_dist = curr_dist
             self.prev_angle_offset = curr_angle_offset
